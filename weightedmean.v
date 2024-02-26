@@ -150,8 +150,18 @@ Qed.
 End def.
 End Split.
 
-Definition mean (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
-  `E_[X | A].
+Section mean.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}).
+
+Definition mean := `E_[X | A].
+
+Lemma meanE : mean = (\sum_(i in A) P i * X i) / \sum_(i in A) P i.
+Proof.
+rewrite /mean cExE /Pr.
+by under eq_bigr do rewrite mulRC.
+Qed.
+
+End mean.
 
 Definition var (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
   `V_[X | A].
@@ -295,7 +305,7 @@ Definition emean_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
     (C : nneg_finfun U) (A : {set U}) (PC_neq0 : Weighted.total P C != 0) :=
   let WP := Weighted.d PC_neq0 in
   let WX : {RV WP -> R} := X in
-  `E_[WX | A].
+  mean WX A (* `E_[WX | A] *).
 
 Definition evar_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
     (C : nneg_finfun U) (A : {set U}) (PC_neq0 : Weighted.total P C != 0) :=
@@ -458,11 +468,11 @@ Proof.
 move=> Hinv.
 have -> : mu = `E_[SX | good `* [set: bool]] by exact: Split.cEx.
 have -> : mu_wave = `E_[SX | good `* [set true]].
-  rewrite /mu_wave /emean_cond !cExE !divRE !big_distrl/= big_setX//=.
+  rewrite /mu_wave /emean_cond meanE !cExE !divRE !big_distrl/= big_setX//=.
   rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
   rewrite big_set1 /WP /SP.
   rewrite /WX /SX /Split.fst_RV /=.
-  rewrite -!mulRA.
+  rewrite -!mulRA mulRCA.
   congr (X u * _).
   under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
   rewrite Split.dE/=.
