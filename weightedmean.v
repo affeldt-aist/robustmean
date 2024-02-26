@@ -38,7 +38,6 @@ Require Import robustmean util.
 (* |       Split.d | == | given a distribution $d_0$ and a non-negative       *)
 (* |               |    | function $h$, returns the distribution              *)
 (* |               |    | $\begin{array}{rl} (a,b) \mapsto & h(a) * d_0(a) \textrm{ if } b \\ & (1 - h(a))*d_0(a) \textrm{ o.w.}\end{array}$ *)
-(* | mean_cond X A | := | `E_[X \| A]                                         *)
 (* |      sq_dev X | == | "squared deviation": $(X - mean)^2$                 *)
 (* |  var_cond X A | := | `V_[X \| A]                                         *)
 (* |          evar | == | empirical variance                                  *)
@@ -151,19 +150,6 @@ Qed.
 End def.
 End Split.
 
-Section mean_cond.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}).
-
-Definition mean_cond := `E_[X | A].
-
-Lemma mean_condE : mean_cond = (\sum_(i in A) P i * X i) / \sum_(i in A) P i.
-Proof.
-rewrite /mean_cond cExE /Pr.
-by under eq_bigr do rewrite mulRC.
-Qed.
-
-End mean_cond.
-
 Section var_cond.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}).
 
@@ -178,14 +164,14 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 Definition emean_cond :=
   let WP := Weighted.d PC_neq0 in
   let WX : {RV WP -> R} := X in
-  mean_cond WX A. (* `E_[WX | A] *)
+  `E_[WX | A].
 
 Lemma emean_condE (C01 : is_01 C) : let SX := Split.fst_RV C01 X in
   emean_cond = `E_[SX | (A `* [set true])].
 Proof.
-rewrite /emean_cond mean_condE !cExE !divRE !big_distrl/= big_setX//=.
+rewrite /emean_cond !cExE !divRE !big_distrl/= big_setX//=.
 rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
-rewrite big_set1 /SP /Split.fst_RV /= -!mulRA mulRCA; congr (X u * _).
+rewrite big_set1 /SP /Split.fst_RV /= -!mulRA; congr (X u * _).
 under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
 rewrite Split.dE/=.
 under [in LHS]eq_bigr do rewrite Weighted.dE.
@@ -207,8 +193,8 @@ Lemma emeanEx : emean = let WP := Weighted.d PC_neq0 in
                         let WX : {RV WP -> R} := X in
                         `E WX.
 Proof.
-rewrite /emean /emean_cond /mean_cond.
-rewrite /Ex cExE/= Pr_setT divR1.
+rewrite /emean /emean_cond.
+rewrite cExE/= Pr_setT divR1.
 by apply: eq_bigl => u; rewrite !inE.
 Qed.
 
@@ -371,7 +357,7 @@ Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 Let WX : {RV WP -> R} := X.
 Let SX := Split.fst_RV C01 X.
 
-Let mu := mean_cond X good.
+Let mu := `E_[X | good].
 Let var := var_cond X good.
 
 Let mu_hat := emean X PC_neq0.
@@ -615,7 +601,7 @@ Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 Let WX : {RV WP -> R} := X.
 Let SX := Split.fst_RV C01 X.
 
-Let mu := mean_cond X good.
+Let mu := `E_[X | good].
 Let var := var_cond X good.
 
 Let mu_hat := emean X PC_neq0.
@@ -957,7 +943,7 @@ Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
 Lemma filter1D_correct good eps :
   Pr P (~: good) = eps -> eps <= 1/16 ->
-  let mu := mean_cond X good in
+  let mu := `E_[X | good] in
   let var := var_cond X good in
   let var_ge0 := cvariance_ge0 X good in
   if filter1D var_ge0 is Some mu_hat
